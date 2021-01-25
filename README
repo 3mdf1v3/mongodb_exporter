@@ -1,0 +1,23 @@
+SERVICE INSTALL:
+----------------
+su - prometheus
+mkdir prometheus_custom_exporter
+
+cd /etc/systemd/system/
+vim prometheus_custom_exporter.service
+
+	[Unit]
+	Description=RSA MongoDB Esm Exporter
+	Wants=network-online.target
+	After=network-online.target
+
+	[Service]
+	User=prometheus
+	ExecStart=/home/prometheus/prometheus_custom_exporter/prometheus_custom_exporter -mongoDbUsername deploy_admin -mongoDbPassword netwitness -mongoDbAuthSource admin -mongoDbHostURI 10.47.51.25:27017
+
+	[Install]
+	WantedBy=default.target
+
+systemctl daemon-reload
+systemctl start prometheus_custom_exporter
+systemctl enable prometheus_custom_exporter
