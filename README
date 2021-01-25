@@ -13,7 +13,7 @@ vim prometheus_custom_exporter.service
 
 	[Service]
 	User=prometheus
-	ExecStart=/home/prometheus/prometheus_custom_exporter/prometheus_custom_exporter -mongoDbUsername deploy_admin -mongoDbPassword netwitness -mongoDbAuthSource admin -mongoDbHostURI 10.47.51.25:27017
+	ExecStart=/home/prometheus/prometheus_custom_exporter/prometheus_custom_exporter -mongoDbUsername ${MONGOADMINUSER} -mongoDbPassword ${MONGOADMINPASSWORD} -mongoDbAuthSource {MONGOADMINDB} -mongoDbHostURI {MONGOURI}
 
 	[Install]
 	WantedBy=default.target
