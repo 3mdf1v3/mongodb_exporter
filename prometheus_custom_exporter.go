@@ -17,17 +17,25 @@ import (
 
 var mongoDbHostURI, mongoDbAuthSource, mongoDbUsername, mongoDbPassword string
 var (
-	esmMetrics = prometheus.NewCounterVec(
+	asoceslastSeenMetric = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "asoc_es_ip",
-			Help: "MongoDB esm database export",
+			Name: "asoc_es_last_Seen",
+			Help: "MongoDB esm database export asoc-es-last-Seen",
+		},
+		[]string{"asocestype", "asocesip", "asocesaddress", "asoceslogCollector", "asoceslogDecoder"},
+	)
+	asocescountMetric = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "asoc_es_count",
+			Help: "MongoDB esm database export asoc-es-count",
 		},
 		[]string{"asocestype", "asocesip", "asocesaddress", "asoceslogCollector", "asoceslogDecoder"},
 	)
 )
 
 func init() {
-	prometheus.MustRegister(esmMetrics)
+	prometheus.MustRegister(asoceslastSeenMetric)
+	prometheus.MustRegister(asocescountMetric)
 }
 
 func prometheusMiddleware(next http.Handler) http.Handler {
@@ -73,9 +81,12 @@ func prometheusMiddleware(next http.Handler) http.Handler {
 			var attributes map[string]interface{}
 			attributes = result["attributes"].(map[string]interface{})
 
-			var asoceslastSeen float64
+			var asoceslastSeen, asocescount float64
 			var asocestype, asocesip, asocesaddress, asoceslogCollector, asoceslogDecoder string
 
+			if attributes["asoc-es-count"] != nil {
+				asocescount = float64(attributes["asoc-es-count"].(int64))
+			}
 			if attributes["asoc-es-lastSeen"] != nil {
 				asoceslastSeen = float64(attributes["asoc-es-lastSeen"].(int64))
 			}
@@ -95,11 +106,13 @@ func prometheusMiddleware(next http.Handler) http.Handler {
 				asoceslogDecoder = attributes["asoc-es-logDecoder"].(string)
 			}
 
-			esmMetrics.WithLabelValues(asocestype, asocesip, asocesaddress, asoceslogCollector, asoceslogDecoder).Add(asoceslastSeen)
+			asoceslastSeenMetric.WithLabelValues(asocestype, asocesip, asocesaddress, asoceslogCollector, asoceslogDecoder).Add(asoceslastSeen)
+			asocescountMetric.WithLabelValues(asocestype, asocesip, asocesaddress, asoceslogCollector, asoceslogDecoder).Add(asocescount)
 		}
 
 		next.ServeHTTP(w, r)
-		esmMetrics.Reset()
+		asoceslastSeenMetric.Reset()
+		asocescountMetric.Reset()
 		client.Disconnect(context.TODO())
 	})
 }
