@@ -15,22 +15,19 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var mongoDbHostURI string
-var mongoDbAuthSource string
-var mongoDbUsername string
-var mongoDbPassword string
+var mongoDbHostURI, mongoDbAuthSource, mongoDbUsername, mongoDbPassword string
 var (
-	asocesip = prometheus.NewCounterVec(
+	esmMetrics = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "asoc_es_ip",
-			Help: "",
+			Help: "MongoDB esm database export",
 		},
-		[]string{"_id"},
+		[]string{"asocestype", "asocesip", "asocesaddress", "asoceslogCollector", "asoceslogDecoder"},
 	)
 )
 
 func init() {
-	prometheus.MustRegister(asocesip)
+	prometheus.MustRegister(esmMetrics)
 }
 
 func prometheusMiddleware(next http.Handler) http.Handler {
@@ -77,12 +74,33 @@ func prometheusMiddleware(next http.Handler) http.Handler {
 			attributes = result["attributes"].(map[string]interface{})
 
 			var asoceslastSeen float64
-			asoceslastSeen = float64(attributes["asoc-es-lastSeen"].(int64))
-			asocesip.WithLabelValues(result["_id"].(string)).Add(asoceslastSeen)
+			var asocestype, asocesip, asocesaddress, asoceslogCollector, asoceslogDecoder string
+
+			if attributes["asoc-es-lastSeen"] != nil {
+				asoceslastSeen = float64(attributes["asoc-es-lastSeen"].(int64))
+			}
+			if attributes["asoc-es-type"] != nil {
+				asocestype = attributes["asoc-es-type"].(string)
+			}
+			if attributes["asoc-es-ip"] != nil {
+				asocesip = attributes["asoc-es-ip"].(string)
+			}
+			if attributes["asoc-es-address"] != nil {
+				asocesaddress = attributes["asoc-es-address"].(string)
+			}
+			if attributes["asoc-es-logCollector"] != nil {
+				asoceslogCollector = attributes["asoc-es-logCollector"].(string)
+			}
+			if attributes["asoc-es-logDecoder"] != nil {
+				asoceslogDecoder = attributes["asoc-es-logDecoder"].(string)
+			}
+
+			esmMetrics.WithLabelValues(asocestype, asocesip, asocesaddress, asoceslogCollector, asoceslogDecoder).Add(asoceslastSeen)
 		}
 
 		next.ServeHTTP(w, r)
-		asocesip.Reset()
+		esmMetrics.Reset()
+		client.Disconnect(context.TODO())
 	})
 }
 
