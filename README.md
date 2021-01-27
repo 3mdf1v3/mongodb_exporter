@@ -1,8 +1,6 @@
 ## MongoDb custom exporter
-
+Service install:
 ```
-SERVICE INSTALL:
-----------------
 su - prometheus
 mkdir prometheus_custom_exporter
 
