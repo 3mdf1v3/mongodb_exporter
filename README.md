@@ -1,4 +1,4 @@
-## MongoDb custom exporter
+## Prometheus MongoDb exporter
 Service install:
 ```
 su - prometheus
